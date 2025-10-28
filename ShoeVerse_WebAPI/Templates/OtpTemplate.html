@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShoeVerse - OTP Verification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        p {
+            color: #333;
+            line-height: 1.6;
+            margin: 15px 30px;
+            font-size: 16px;
+        }
+
+        .otp-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            text-align: center;
+            padding: 25px;
+            margin: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .footer {
+            color: #777;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 30px;
+            padding-bottom: 20px;
+        }
+
+        strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">👟 ShoeVerse - OTP Verification</div>
+        <p>Hello,</p>
+        <p>We received a request to verify your ShoeVerse account.</p>
+        <p>Your One-Time Password (OTP) is:</p>
+        <div class="otp-box">{{OTP}}</div>
+        <p>This OTP is valid for <strong>5 minutes</strong>. Please do not share it with anyone.</p>
+        <p>Enter this OTP on the ShoeVerse verification page to continue.</p>
+        <p class="footer">If you did not request this OTP, please ignore this email.</p>
+        <p class="footer">© 2025 ShoeVerse. Step Up Your Style.</p>
+    </div>
+</body>
+</html>

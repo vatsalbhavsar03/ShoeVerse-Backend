@@ -1,0 +1,6 @@
+@ShoeVerse_WebAPI_HostAddress = http://localhost:5145
+
+GET {{ShoeVerse_WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
