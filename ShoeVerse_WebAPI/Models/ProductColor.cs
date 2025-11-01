@@ -22,4 +22,6 @@ public partial class ProductColor
     public virtual Product? Product { get; set; }
 
     public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
+
+    public virtual ICollection<ProductSize> ProductSizes { get; set; } = new List<ProductSize>();
 }

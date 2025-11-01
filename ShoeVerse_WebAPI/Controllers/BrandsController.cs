@@ -101,14 +101,14 @@ namespace ShoeVerse_WebAPI.Controllers
         [HttpPut("UpdateBrand/{Brandid}")]
         public async Task<ActionResult> UpdateBrand(int Brandid, [FromBody] BrandDTO UpdateBrand)
         {
-            if (_context.Brands.Any(b => b.BrandName == UpdateBrand.BrandName && b.BrandId != Brandid))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Brand already exists"
-                });
-            }
+            //if (_context.Brands.Any(b => b.BrandName == UpdateBrand.BrandName && b.BrandId != Brandid))
+            //{
+            //    return BadRequest(new
+            //    {
+            //        success = false,
+            //        message = "Brand already exists"
+            //    });
+            //}
             var brand = await _context.Brands.FindAsync(Brandid);
             if (brand == null)
             {
@@ -147,14 +147,14 @@ namespace ShoeVerse_WebAPI.Controllers
         {
             try
             {
-                if (_context.Brands.Any(b => b.BrandName == AddBrand.BrandName))
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "This Brand already exists."
-                    });
-                }
+                //if (_context.Brands.Any(b => b.BrandName == AddBrand.BrandName))
+                //{
+                //    return BadRequest(new
+                //    {
+                //        success = false,
+                //        message = "This Brand already exists."
+                //    });
+                //}
 
                 var brand = new Brand
                 {

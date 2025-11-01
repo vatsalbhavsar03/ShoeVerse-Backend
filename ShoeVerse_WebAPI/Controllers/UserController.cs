@@ -240,7 +240,7 @@ namespace ShoeVerse_WebAPI.Controllers
                 using var smtp = new SmtpClient("smtp.gmail.com")
                 {
                     Port = 587,
-                    Credentials = new NetworkCredential("rutvikvariya3222@gmail.com", "dejx ktgd gooz rvrg"),
+                    Credentials = new NetworkCredential("bhavsarvatsal337@gmail.com", "dsms vopc kgoa teef"),
                     EnableSsl = true,
                 };
 
@@ -335,7 +335,12 @@ namespace ShoeVerse_WebAPI.Controllers
                 message = "Login Successfull.",
                 token = token,
                 roleId = user.RoleId,
-                redirectUrl = GetRedirectUrl(user.RoleId)
+                redirectUrl = GetRedirectUrl(user.RoleId),
+                userId = user.UserId,
+                username = user.Username,
+                email = user.Email,
+                phoneNo = user.PhoneNo,
+                profileImage = user.ProfileImage
             });
         }
 
@@ -372,69 +377,91 @@ namespace ShoeVerse_WebAPI.Controllers
 
         // PUT: api/Users/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("AdminUpdateUser/{id}")]
-        public async Task<IActionResult> AdminUpdateUser(int id, [FromBody] User updatedUser)
+        [HttpPut("EditProfile/{id}")]
+        public async Task<ActionResult> EditProfile(int id, [FromForm] RegisterUserDTO updateDto, IFormFile? profileImage)
         {
-            if (id != updatedUser.UserId)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "User ID mismatch."
-                });
-            }
-
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = "User not found."
-                });
-            }
-
-            if (_context.Users.Any(u => u.Email == updatedUser.Email && u.UserId != id))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Email already exists."
-                });
-            }
-
-            user.Username = updatedUser.Username;
-            user.Email = updatedUser.Email;
-            user.PhoneNo = updatedUser.PhoneNo;
-            user.RoleId = updatedUser.RoleId;
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = "An error occurred while updating the user."
-                });
-            }
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                    return NotFound(new { success = false, message = "User not found." });
 
-            return Ok(new
-            {
-                success = true,
-                message = "User updated successfully.",
-                user = new
+
+                // Check if email is already used by another user
+                if (_context.Users.Any(u => u.Email == updateDto.Email && u.UserId != id))
+                    return BadRequest(new { success = false, message = "Email already in use by another account." });
+
+                // Handle new profile image
+                if (profileImage != null && profileImage.Length > 0)
                 {
-                    user.UserId,
-                    user.Username,
-                    user.Email,
-                    user.PhoneNo,
-                    user.RoleId
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profile");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    // Delete old image if exists
+                    if (!string.IsNullOrEmpty(user.ProfileImage))
+                    {
+                        var oldImagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profile",
+                            Path.GetFileName(user.ProfileImage));
+                        if (System.IO.File.Exists(oldImagePath))
+                            System.IO.File.Delete(oldImagePath);
+                    }
+
+                    // Save new image
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await profileImage.CopyToAsync(stream);
+                    }
+
+                    user.ProfileImage = $"{Request.Scheme}://{Request.Host}/uploads/profile/{uniqueFileName}";
                 }
-            });
+
+                // Update fields safely
+                if (!string.IsNullOrEmpty(updateDto.Name))
+                    user.Username = updateDto.Name;
+
+                if (!string.IsNullOrEmpty(updateDto.Email))
+                    user.Email = updateDto.Email;
+
+                if (updateDto.PhoneNo != 0)
+                    user.PhoneNo = updateDto.PhoneNo;
+
+                if (!string.IsNullOrEmpty(updateDto.Password))
+                    user.Password = BCrypt.Net.BCrypt.HashPassword(updateDto.Password);
+
+                // Update timestamp (Indian time)
+                TimeZoneInfo indianZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+                user.UpdatedAt = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, indianZone);
+
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Admin profile updated successfully.",
+                    user = new
+                    {
+                        userId = user.UserId,      
+                        username = user.Username,  
+                        email = user.Email,        
+                        phoneNo = user.PhoneNo,    
+                        profileImage = user.ProfileImage,
+                        createdAt = user.CreatedAt,
+                        updatedAt = user.UpdatedAt
+                    }
+                });
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
+
 
 
         // DELETE: api/Users/5
