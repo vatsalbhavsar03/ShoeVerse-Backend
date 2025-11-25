@@ -15,5 +15,7 @@ public partial class ProductSize
 
     public bool? IsAvailable { get; set; }
 
+    public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+
     public virtual ProductColor? Color { get; set; }
 }
