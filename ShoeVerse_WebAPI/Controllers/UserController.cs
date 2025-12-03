@@ -246,7 +246,7 @@ namespace ShoeVerse_WebAPI.Controllers
 
                 var mailMsg = new MailMessage
                 {
-                    From = new MailAddress("rutvikvariya3222@gmail.com"),
+                    From = new MailAddress("bhavsarvatsal337@gmail.com"),
                     Subject = "Your OTP code for Registration.",
                     Body = emailBody,
                     IsBodyHtml = true,
