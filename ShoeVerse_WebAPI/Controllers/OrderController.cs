@@ -38,12 +38,76 @@ namespace ShoeVerse_WebAPI.Controllers
         }
 
         // POST: api/Order/CreateOrder
+        //[HttpPost("CreateOrder")]
+        //public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
+        //{
+        //    try
+        //    {
+        //        // Get user's cart
+        //        var cart = await _context.Carts
+        //            .Include(c => c.CartItems)
+        //                .ThenInclude(ci => ci.Product)
+        //            .Include(c => c.CartItems)
+        //                .ThenInclude(ci => ci.Color)
+        //            .Include(c => c.CartItems)
+        //                .ThenInclude(ci => ci.Size)
+        //            .FirstOrDefaultAsync(c => c.UserId == request.UserId);
+
+        //        if (cart == null || !cart.CartItems.Any())
+        //            return BadRequest(new { success = false, message = "Cart is empty" });
+
+        //        var order = new Order
+        //        {
+        //            UserId = request.UserId,
+        //            Status = request.PaymentMethod.ToLower() == "cod" ? "Pending" : "Payment Initiated",
+        //            OrderDate = DateTime.UtcNow,
+        //            TotalAmount = cart.CartItems.Sum(ci => (ci.Product?.Price ?? 0) * ci.Quantity),
+        //            Phone = request.Phone,
+        //            Address = request.Address,
+        //            CreatedAt = DateTime.UtcNow,
+        //            UpdatedAt = DateTime.UtcNow
+        //        };
+
+        //        _context.Orders.Add(order);
+        //        await _context.SaveChangesAsync();
+
+        //        foreach (var item in cart.CartItems)
+        //        {
+        //            var orderItem = new OrderItem
+        //            {
+        //                OrderId = order.OrderId,
+        //                ProductId = item.ProductId,
+        //                ColorId = item.ColorId,
+        //                SizeId = item.SizeId,
+        //                Quantity = item.Quantity,
+        //                Price = item.Product?.Price ?? 0
+        //            };
+        //            _context.OrderItems.Add(orderItem);
+        //        }
+
+        //        // Clear cart
+        //        _context.CartItems.RemoveRange(cart.CartItems);
+        //        await _context.SaveChangesAsync();
+
+        //        return Ok(new { success = true, message = "Order created successfully", orderId = order.OrderId });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error creating order for user {UserId}", request.UserId);
+        //        return StatusCode(500, new { success = false, message = ex.Message });
+        //    }
+        //}
+        // POST: api/Order/CreateOrder
         [HttpPost("CreateOrder")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
+            if (request == null || request.UserId <= 0)
+                return BadRequest(new { success = false, message = "Invalid order request." });
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Get user's cart
+                // Load user's cart with items and necessary nav props
                 var cart = await _context.Carts
                     .Include(c => c.CartItems)
                         .ThenInclude(ci => ci.Product)
@@ -56,10 +120,39 @@ namespace ShoeVerse_WebAPI.Controllers
                 if (cart == null || !cart.CartItems.Any())
                     return BadRequest(new { success = false, message = "Cart is empty" });
 
+                // 1) Validate stock for every cart item using ProductSizes (by SizeId & ColorId)
+                foreach (var ci in cart.CartItems)
+                {
+                    var sizeEntity = await _context.ProductSizes
+                        .FirstOrDefaultAsync(ps =>
+                            ps.SizeId == ci.SizeId
+                            && ((ps.ColorId == ci.ColorId) || (ps.ColorId == null && ci.ColorId == null)));
+
+                    if (sizeEntity == null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"Product size not found for productId={ci.ProductId}, sizeId={ci.SizeId}"
+                        });
+                    }
+
+                    var available = sizeEntity.Stock ?? 0;
+                    if (available < ci.Quantity)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"Insufficient stock for product '{ci.Product?.Name ?? ci.ProductId.ToString()}'. Requested: {ci.Quantity}, Available: {available}"
+                        });
+                    }
+                }
+
+                // 2) Create Order header
                 var order = new Order
                 {
                     UserId = request.UserId,
-                    Status = request.PaymentMethod.ToLower() == "cod" ? "Pending" : "Payment Initiated",
+                    Status = string.Equals(request.PaymentMethod, "cod", StringComparison.OrdinalIgnoreCase) ? "Pending" : "Payment Initiated",
                     OrderDate = DateTime.UtcNow,
                     TotalAmount = cart.CartItems.Sum(ci => (ci.Product?.Price ?? 0) * ci.Quantity),
                     Phone = request.Phone,
@@ -69,30 +162,72 @@ namespace ShoeVerse_WebAPI.Controllers
                 };
 
                 _context.Orders.Add(order);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); // persist to obtain order.OrderId
 
-                foreach (var item in cart.CartItems)
+                // 3) Create OrderItems and decrement ProductSize stock
+                foreach (var ci in cart.CartItems)
                 {
                     var orderItem = new OrderItem
                     {
                         OrderId = order.OrderId,
-                        ProductId = item.ProductId,
-                        ColorId = item.ColorId,
-                        SizeId = item.SizeId,
-                        Quantity = item.Quantity,
-                        Price = item.Product?.Price ?? 0
+                        ProductId = ci.ProductId,
+                        ColorId = ci.ColorId,
+                        SizeId = ci.SizeId,
+                        Quantity = ci.Quantity,
+                        Price = ci.Product?.Price ?? 0
                     };
                     _context.OrderItems.Add(orderItem);
+
+                    // Fetch the ProductSize row to update
+                    var sizeEntity = await _context.ProductSizes
+                        .FirstOrDefaultAsync(ps =>
+                            ps.SizeId == ci.SizeId
+                            && ((ps.ColorId == ci.ColorId) || (ps.ColorId == null && ci.ColorId == null)));
+
+                    if (sizeEntity == null)
+                        throw new InvalidOperationException($"ProductSize row missing for sizeId={ci.SizeId}");
+
+                    sizeEntity.Stock = Math.Max(0, (sizeEntity.Stock ?? 0) - ci.Quantity);
+                    _context.ProductSizes.Update(sizeEntity);
+
+                    // Optional: decrement product-level stock if your Product entity contains a Stock property
+                    if (ci.Product != null)
+                    {
+                        var productEntity = await _context.Products.FindAsync(ci.ProductId);
+                        if (productEntity != null)
+                        {
+                            var prodStockProp = productEntity.GetType().GetProperty("Stock");
+                            if (prodStockProp != null)
+                            {
+                                var currentP = (int)(prodStockProp.GetValue(productEntity) ?? 0);
+                                prodStockProp.SetValue(productEntity, Math.Max(0, currentP - ci.Quantity));
+                                _context.Products.Update(productEntity);
+                            }
+                        }
+                    }
                 }
 
-                // Clear cart
+                // 4) Clear cart items
                 _context.CartItems.RemoveRange(cart.CartItems);
-                await _context.SaveChangesAsync();
 
-                return Ok(new { success = true, message = "Order created successfully", orderId = order.OrderId });
+                // 5) Save all changes and commit
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                // Optionally return ordered items in response (frontend uses orderId and can dispatch stock event)
+                var orderedItems = cart.CartItems.Select(ci => new
+                {
+                    productId = ci.ProductId,
+                    colorId = ci.ColorId,
+                    sizeId = ci.SizeId,
+                    quantity = ci.Quantity
+                }).ToList();
+
+                return Ok(new { success = true, message = "Order created successfully", orderId = order.OrderId, items = orderedItems });
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error creating order for user {UserId}", request.UserId);
                 return StatusCode(500, new { success = false, message = ex.Message });
             }

@@ -1,9 +1,10 @@
-﻿using System.Net;
-using System.Net.Mail;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShoeVerse_WebAPI.DTO;
 using ShoeVerse_WebAPI.Models;
+using System.Net;
+using System.Net.Mail;
+using System.Text;
 
 namespace ShoeVerse_WebAPI.Controllers
 {
@@ -13,11 +14,13 @@ namespace ShoeVerse_WebAPI.Controllers
     {
         private readonly ShoeVersedbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<PaymentController>? _logger;
 
-        public PaymentController(ShoeVersedbContext context, IConfiguration configuration)
+        public PaymentController(ShoeVersedbContext context, IConfiguration configuration, ILogger<PaymentController> logger)
         {
             _context = context;
             _configuration = configuration;
+            _logger = logger;
         }
 
         // GET: api/Payment/GetAllPayments
@@ -73,6 +76,63 @@ namespace ShoeVerse_WebAPI.Controllers
         }
 
         // POST: api/Payment/CreatePayment
+        //[HttpPost("CreatePayment")]
+        //public async Task<IActionResult> CreatePayment([FromBody] PaymentDto dto)
+        //{
+        //    if (dto == null || dto.OrderId <= 0 || string.IsNullOrEmpty(dto.PaymentMethod)
+        //        || string.IsNullOrEmpty(dto.TransactionId) || dto.Amount <= 0
+        //        || string.IsNullOrEmpty(dto.PaymentStatus))
+        //    {
+        //        return BadRequest(new { success = false, message = "Invalid payment data." });
+        //    }
+
+        //    var order = await _context.Orders
+        //        .Include(o => o.User)
+        //        .Include(o => o.OrderItems)
+        //            .ThenInclude(oi => oi.Product)
+        //        .FirstOrDefaultAsync(o => o.OrderId == dto.OrderId);
+
+        //    if (order == null)
+        //        return NotFound(new { success = false, message = "Order not found." });
+
+        //    var payment = new Payment
+        //    {
+        //        OrderId = dto.OrderId,
+        //        PaymentMethod = dto.PaymentMethod,
+        //        TransactionId = dto.TransactionId,
+        //        Amount = dto.Amount,
+        //        PaymentStatus = dto.PaymentStatus,
+        //        PaymentDate = DateTime.UtcNow,
+        //        CreatedAt = DateTime.UtcNow,
+        //        UpdatedAt = DateTime.UtcNow
+        //    };
+
+        //    _context.Payments.Add(payment);
+
+        //    // Update order status based on payment method
+        //    if (dto.PaymentMethod.ToLower() == "cod")
+        //    {
+        //        order.Status = "Pending"; // for COD
+        //    }
+        //    else
+        //    {
+        //        order.Status = dto.PaymentStatus; // e.g., "Paid" for Razorpay
+        //    }
+        //    order.UpdatedAt = DateTime.UtcNow;
+
+        //    await _context.SaveChangesAsync();
+
+        //    // Send order confirmation email
+        //    await SendOrderConfirmationEmail(order.User.Email, order);
+
+        //    return Ok(new
+        //    {
+        //        success = true,
+        //        message = "Payment created successfully and order confirmation sent via email.",
+        //        paymentId = payment.PaymentId
+        //    });
+        //}
+        // POST: api/Payment/CreatePayment
         [HttpPost("CreatePayment")]
         public async Task<IActionResult> CreatePayment([FromBody] PaymentDto dto)
         {
@@ -106,75 +166,183 @@ namespace ShoeVerse_WebAPI.Controllers
 
             _context.Payments.Add(payment);
 
-            // Update order status based on payment method
+            // Update order status
             if (dto.PaymentMethod.ToLower() == "cod")
             {
-                order.Status = "Pending"; // for COD
+                order.Status = "Pending";
             }
             else
             {
-                order.Status = dto.PaymentStatus; // e.g., "Paid" for Razorpay
+                order.Status = dto.PaymentStatus; // e.g., "Paid"
             }
             order.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            // Send order confirmation email
-            await SendOrderConfirmationEmail(order.User.Email, order);
+            // Send order confirmation email ASYNCHRONOUSLY
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await SendOrderConfirmationEmail(order.User.Email, order);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to send confirmation email for order {OrderId}", order.OrderId);
+                }
+            });
 
             return Ok(new
             {
                 success = true,
-                message = "Payment created successfully and order confirmation sent via email.",
+                message = "Payment created successfully. Order confirmation email queued.",
                 paymentId = payment.PaymentId
             });
         }
 
+
+
         // Email sending
+        //private async Task<bool> SendOrderConfirmationEmail(string email, Order order)
+        //{
+        //    try
+        //    {
+        //        string templatePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates", "OrderConfirmation.html");
+        //        string emailBody = await System.IO.File.ReadAllTextAsync(templatePath);
+
+        //        emailBody = emailBody.Replace("{{UserName}}", order.User.Username)
+        //                             .Replace("{{OrderId}}", order.OrderId.ToString())
+        //                             .Replace("{{OrderDate}}", order.CreatedAt.ToString("dd-MM-yyyy"))
+        //                             .Replace("{{TotalAmount}}", order.TotalAmount.ToString("C"));
+
+        //        string itemsHtml = "";
+        //        foreach (var item in order.OrderItems)
+        //        {
+        //            itemsHtml += $"<tr>" +
+        //                         $"<td>{item.Product.Name}</td>" +
+        //                         $"<td>{item.Quantity}</td>" +
+        //                         $"<td>{item.Price}</td>" +
+        //                         $"</tr>";
+        //        }
+        //        emailBody = emailBody.Replace("{{OrderItems}}", itemsHtml);
+
+        //        using var smtp = new SmtpClient("smtp.gmail.com")
+        //        {
+        //            Port = 587,
+        //            Credentials = new NetworkCredential("bhavsarvatsal337@gmail.com", "dsms vopc kgoa teef"),
+        //            EnableSsl = true,
+        //        };
+
+        //        var mailMsg = new MailMessage
+        //        {
+        //            From = new MailAddress("bhavsarvatsal337@gmail.com"),
+        //            Subject = $"Order Confirmation - #{order.OrderId}",
+        //            Body = emailBody,
+        //            IsBodyHtml = true
+        //        };
+
+        //        mailMsg.To.Add(email);
+        //        await smtp.SendMailAsync(mailMsg);
+        //        return true;
+        //    }
+        //    catch
+        //    {
+        //        return false;
+        //    }
+        //}
+
         private async Task<bool> SendOrderConfirmationEmail(string email, Order order)
         {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                _logger.LogWarning("SendOrderConfirmationEmail called with empty email for order {OrderId}", order?.OrderId);
+                return false;
+            }
+
             try
             {
+                // ensure order and navigations exist
+                order = order ?? throw new ArgumentNullException(nameof(order));
+                var username = order.User?.Username ?? "Customer";
+
+                // Template file
                 string templatePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates", "OrderConfirmation.html");
+                if (!System.IO.File.Exists(templatePath))
+                {
+                    _logger.LogWarning("Email template not found at {Path}", templatePath);
+                    return false;
+                }
+
                 string emailBody = await System.IO.File.ReadAllTextAsync(templatePath);
 
-                emailBody = emailBody.Replace("{{UserName}}", order.User.Username)
-                                     .Replace("{{OrderId}}", order.OrderId.ToString())
-                                     .Replace("{{OrderDate}}", order.CreatedAt.ToString("dd-MM-yyyy"))
-                                     .Replace("{{TotalAmount}}", order.TotalAmount.ToString("C"));
+                // basic replacements
+                emailBody = emailBody
+                    .Replace("{{UserName}}", WebUtility.HtmlEncode(username))
+                    .Replace("{{OrderId}}", order.OrderId.ToString())
+                    .Replace("{{OrderDate}}", (order.CreatedAt == default ? DateTime.UtcNow : order.CreatedAt).ToString("dd-MM-yyyy"));
 
-                string itemsHtml = "";
-                foreach (var item in order.OrderItems)
+                // currency formatting - use configuration or invariant culture as needed
+                var culture = System.Globalization.CultureInfo.GetCultureInfo(_configuration["App:CurrencyCulture"] ?? "en-IN");
+                emailBody = emailBody.Replace("{{TotalAmount}}", (order.TotalAmount).ToString("C", culture));
+
+                // Build items HTML (defensive null checks)
+                var itemsHtml = new StringBuilder();
+                if (order.OrderItems != null)
                 {
-                    itemsHtml += $"<tr>" +
-                                 $"<td>{item.Product.Name}</td>" +
-                                 $"<td>{item.Quantity}</td>" +
-                                 $"<td>{item.Price}</td>" +
-                                 $"</tr>";
+                    foreach (var item in order.OrderItems)
+                    {
+                        var productName = item.Product?.Name ?? "Product";
+                        var qty = item.Quantity;
+                        var price = (item.Price).ToString("C", culture);
+
+                        itemsHtml.Append("<tr>")
+                                 .AppendFormat("<td>{0}</td>", WebUtility.HtmlEncode(productName))
+                                 .AppendFormat("<td style=\"text-align:center\">{0}</td>", qty)
+                                 .AppendFormat("<td style=\"text-align:right\">{0}</td>", price)
+                                 .Append("</tr>");
+                    }
                 }
-                emailBody = emailBody.Replace("{{OrderItems}}", itemsHtml);
+                emailBody = emailBody.Replace("{{OrderItems}}", itemsHtml.ToString());
 
-                using var smtp = new SmtpClient("smtp.gmail.com")
-                {
-                    Port = 587,
-                    Credentials = new NetworkCredential("bhavsarvatsal337@gmail.com", "dsms vopc kgoa teef"),
-                    EnableSsl = true,
-                };
+                // Read SMTP settings from configuration
+                var smtpHost = _configuration["Smtp:Host"];
+                var smtpPort = int.TryParse(_configuration["Smtp:Port"], out var port) ? port : 587;
+                var smtpUser = _configuration["Smtp:User"];
+                var smtpPass = _configuration["Smtp:Pass"];
+                var fromEmail = _configuration["Smtp:FromEmail"] ?? smtpUser;
+                var fromName = _configuration["Smtp:FromName"] ?? "Your Store";
 
-                var mailMsg = new MailMessage
+                if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUser) || string.IsNullOrWhiteSpace(smtpPass))
                 {
-                    From = new MailAddress("bhavsarvatsal337@gmail.com"),
+                    _logger.LogWarning("SMTP configuration missing (Host/User/Pass). Email not sent for order {OrderId}", order.OrderId);
+                    return false;
+                }
+
+                using var mail = new MailMessage()
+                {
+                    From = new MailAddress(fromEmail, fromName),
                     Subject = $"Order Confirmation - #{order.OrderId}",
                     Body = emailBody,
                     IsBodyHtml = true
                 };
+                mail.To.Add(email);
 
-                mailMsg.To.Add(email);
-                await smtp.SendMailAsync(mailMsg);
+                using var smtp = new SmtpClient(smtpHost, smtpPort)
+                {
+                    EnableSsl = true,
+                    Credentials = new NetworkCredential(smtpUser, smtpPass)
+                };
+
+                // If you want a timeout:
+                smtp.Timeout = 20000; // 20s
+
+                await smtp.SendMailAsync(mail);
+                _logger.LogInformation("Order confirmation email sent to {Email} for order {OrderId}", email, order.OrderId);
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to send order confirmation email for order {OrderId}", order?.OrderId);
                 return false;
             }
         }
