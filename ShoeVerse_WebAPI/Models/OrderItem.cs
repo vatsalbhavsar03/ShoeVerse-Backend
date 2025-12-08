@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace ShoeVerse_WebAPI.Models;
 
@@ -21,6 +22,7 @@ public partial class OrderItem
 
     public virtual ProductColor? Color { get; set; }
 
+    [JsonIgnore]
     public virtual Order Order { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;

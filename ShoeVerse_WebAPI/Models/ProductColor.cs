@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace ShoeVerse_WebAPI.Models;
 
@@ -19,10 +20,13 @@ public partial class ProductColor
 
     public bool? IsActive { get; set; }
 
+    [JsonIgnore]
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 
+    [JsonIgnore]
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
+    [JsonIgnore]
     public virtual Product? Product { get; set; }
 
     public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();

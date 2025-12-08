@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace ShoeVerse_WebAPI.Models;
 
@@ -23,5 +24,6 @@ public partial class Payment
 
     public DateTime UpdatedAt { get; set; }
 
+    [JsonIgnore]
     public virtual Order Order { get; set; } = null!;
 }

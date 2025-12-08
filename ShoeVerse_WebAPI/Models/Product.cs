@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace ShoeVerse_WebAPI.Models;
 
@@ -35,17 +36,21 @@ public partial class Product
 
     public virtual Brand? Brand { get; set; }
 
+    [JsonIgnore]
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 
     public virtual Category? Category { get; set; }
 
+    [JsonIgnore]
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
     public virtual ICollection<ProductColor> ProductColors { get; set; } = new List<ProductColor>();
 
     public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
 
+    [JsonIgnore]
     public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
 
+    [JsonIgnore]
     public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
 }

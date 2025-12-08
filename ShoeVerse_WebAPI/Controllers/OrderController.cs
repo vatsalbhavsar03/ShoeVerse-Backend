@@ -152,7 +152,7 @@ namespace ShoeVerse_WebAPI.Controllers
                 var order = new Order
                 {
                     UserId = request.UserId,
-                    Status = string.Equals(request.PaymentMethod, "cod", StringComparison.OrdinalIgnoreCase) ? "Pending" : "Payment Initiated",
+                    Status = "Pending",
                     OrderDate = DateTime.UtcNow,
                     TotalAmount = cart.CartItems.Sum(ci => (ci.Product?.Price ?? 0) * ci.Quantity),
                     Phone = request.Phone,

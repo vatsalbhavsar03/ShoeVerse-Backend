@@ -75,63 +75,7 @@ namespace ShoeVerse_WebAPI.Controllers
             return Ok(new { success = true, payment = result });
         }
 
-        // POST: api/Payment/CreatePayment
-        //[HttpPost("CreatePayment")]
-        //public async Task<IActionResult> CreatePayment([FromBody] PaymentDto dto)
-        //{
-        //    if (dto == null || dto.OrderId <= 0 || string.IsNullOrEmpty(dto.PaymentMethod)
-        //        || string.IsNullOrEmpty(dto.TransactionId) || dto.Amount <= 0
-        //        || string.IsNullOrEmpty(dto.PaymentStatus))
-        //    {
-        //        return BadRequest(new { success = false, message = "Invalid payment data." });
-        //    }
-
-        //    var order = await _context.Orders
-        //        .Include(o => o.User)
-        //        .Include(o => o.OrderItems)
-        //            .ThenInclude(oi => oi.Product)
-        //        .FirstOrDefaultAsync(o => o.OrderId == dto.OrderId);
-
-        //    if (order == null)
-        //        return NotFound(new { success = false, message = "Order not found." });
-
-        //    var payment = new Payment
-        //    {
-        //        OrderId = dto.OrderId,
-        //        PaymentMethod = dto.PaymentMethod,
-        //        TransactionId = dto.TransactionId,
-        //        Amount = dto.Amount,
-        //        PaymentStatus = dto.PaymentStatus,
-        //        PaymentDate = DateTime.UtcNow,
-        //        CreatedAt = DateTime.UtcNow,
-        //        UpdatedAt = DateTime.UtcNow
-        //    };
-
-        //    _context.Payments.Add(payment);
-
-        //    // Update order status based on payment method
-        //    if (dto.PaymentMethod.ToLower() == "cod")
-        //    {
-        //        order.Status = "Pending"; // for COD
-        //    }
-        //    else
-        //    {
-        //        order.Status = dto.PaymentStatus; // e.g., "Paid" for Razorpay
-        //    }
-        //    order.UpdatedAt = DateTime.UtcNow;
-
-        //    await _context.SaveChangesAsync();
-
-        //    // Send order confirmation email
-        //    await SendOrderConfirmationEmail(order.User.Email, order);
-
-        //    return Ok(new
-        //    {
-        //        success = true,
-        //        message = "Payment created successfully and order confirmation sent via email.",
-        //        paymentId = payment.PaymentId
-        //    });
-        //}
+        
         // POST: api/Payment/CreatePayment
         [HttpPost("CreatePayment")]
         public async Task<IActionResult> CreatePayment([FromBody] PaymentDto dto)
