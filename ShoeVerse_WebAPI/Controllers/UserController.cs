@@ -283,8 +283,7 @@ namespace ShoeVerse_WebAPI.Controllers
         }
 
 
-        // Verify OTP
-        
+        // VerifyOTP - Already correct
         [HttpPost("VerifyOTP")]
         public async Task<ActionResult> VerifyOtp([FromBody] VerifyOtpDto verifyOtpDto)
         {
@@ -293,32 +292,27 @@ namespace ShoeVerse_WebAPI.Controllers
                 var sessionOtp = HttpContext.Session.GetString("otp");
                 var sessionEmail = HttpContext.Session.GetString("otpEmail");
 
-             
                 Console.WriteLine($"Session OTP: {sessionOtp}");
                 Console.WriteLine($"Session Email: {sessionEmail}");
                 Console.WriteLine($"Received OTP: {verifyOtpDto.Otp}");
                 Console.WriteLine($"Received Email: {verifyOtpDto.Email}");
 
-                // Check if session exists
                 if (sessionOtp == null || sessionEmail == null)
                 {
                     return BadRequest(new { success = false, message = "OTP session expired. Please request a new OTP." });
                 }
 
-                // Check if OTP matches
                 if (sessionOtp != verifyOtpDto.Otp)
                 {
                     return BadRequest(new { success = false, message = "Invalid OTP. Please check and try again." });
                 }
 
-                // Check if email matches (case-insensitive)
                 if (!sessionEmail.Equals(verifyOtpDto.Email, StringComparison.OrdinalIgnoreCase))
                 {
                     return BadRequest(new { success = false, message = "Email mismatch. Please try again." });
                 }
 
                 HttpContext.Session.SetString("otpVerified", "true");
-
                 return Ok(new { success = true, message = "OTP Verified Successfully." });
             }
             catch (Exception ex)
@@ -327,6 +321,7 @@ namespace ShoeVerse_WebAPI.Controllers
                 return BadRequest(new { success = false, message = "An error occurred during verification." });
             }
         }
+
 
 
         // GET: api/Users/5

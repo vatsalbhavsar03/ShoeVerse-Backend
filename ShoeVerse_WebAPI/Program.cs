@@ -1,28 +1,27 @@
-﻿
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ShoeVerse_WebAPI.Models;
 using System.Text;
 
-//Configure WebRootPath 
+//Configure WebRootPath
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
     WebRootPath = "wwwroot"
 });
 
-//  Database Context
+// Database Context
 builder.Services.AddDbContext<ShoeVersedbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("api")));
 
-//  Controllers with JSON Options
+// Controllers with JSON Options
 builder.Services.AddControllers()
     .AddJsonOptions(x =>
         x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 
-//  Swagger with JWT Support
+// Swagger with JWT Support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -51,7 +50,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Session Support 
+// Session Support
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -59,11 +58,11 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.Name = ".ShoeVerse.Session";
-    options.Cookie.SameSite = SameSiteMode.Lax; 
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None; 
+    options.Cookie.SameSite = SameSiteMode.None;  
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  
 });
 
-//  JWT Authentication
+// JWT Authentication
 var keyBytes = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -83,7 +82,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-//  CORS 
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -95,7 +94,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-//  Middleware 
+// Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -106,16 +105,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-
 app.UseStaticFiles();
-
 app.UseRouting();
-app.UseCors("AllowFrontend"); 
-app.UseSession();              
+app.UseCors("AllowFrontend");
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
