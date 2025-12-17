@@ -240,7 +240,7 @@ namespace ShoeVerse_WebAPI.Controllers
                 using var smtp = new SmtpClient("smtp.gmail.com")
                 {
                     Port = 587,
-                    Credentials = new NetworkCredential("bhavsarvatsal337@gmail.com", "dsms vopc kgoa teef"),
+                    Credentials = new NetworkCredential("bhavsarvatsal337@gmail.com", "nlcc pzdw dfij hafa"),
                     EnableSsl = true,
                 };
 
@@ -284,21 +284,48 @@ namespace ShoeVerse_WebAPI.Controllers
 
 
         // Verify OTP
+        
         [HttpPost("VerifyOTP")]
         public async Task<ActionResult> VerifyOtp([FromBody] VerifyOtpDto verifyOtpDto)
         {
-            var sessionOtp = HttpContext.Session.GetString("otp");
-            var sessionEmail = HttpContext.Session.GetString("otpEmail");
-
-            if (sessionOtp == null || sessionEmail == null || sessionOtp != verifyOtpDto.Otp || sessionEmail != verifyOtpDto.Email)
+            try
             {
-                return BadRequest(new { success = false, message = "Invalid Or Expired OTP." });
+                var sessionOtp = HttpContext.Session.GetString("otp");
+                var sessionEmail = HttpContext.Session.GetString("otpEmail");
+
+             
+                Console.WriteLine($"Session OTP: {sessionOtp}");
+                Console.WriteLine($"Session Email: {sessionEmail}");
+                Console.WriteLine($"Received OTP: {verifyOtpDto.Otp}");
+                Console.WriteLine($"Received Email: {verifyOtpDto.Email}");
+
+                // Check if session exists
+                if (sessionOtp == null || sessionEmail == null)
+                {
+                    return BadRequest(new { success = false, message = "OTP session expired. Please request a new OTP." });
+                }
+
+                // Check if OTP matches
+                if (sessionOtp != verifyOtpDto.Otp)
+                {
+                    return BadRequest(new { success = false, message = "Invalid OTP. Please check and try again." });
+                }
+
+                // Check if email matches (case-insensitive)
+                if (!sessionEmail.Equals(verifyOtpDto.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { success = false, message = "Email mismatch. Please try again." });
+                }
+
+                HttpContext.Session.SetString("otpVerified", "true");
+
+                return Ok(new { success = true, message = "OTP Verified Successfully." });
             }
-
-            HttpContext.Session.Remove("otp");
-            HttpContext.Session.Remove("otpEmail");
-
-            return Ok(new { success = true, message = "OTP Verified Successfully." });
+            catch (Exception ex)
+            {
+                Console.WriteLine($"VerifyOTP Error: {ex.Message}");
+                return BadRequest(new { success = false, message = "An error occurred during verification." });
+            }
         }
 
 
@@ -346,31 +373,55 @@ namespace ShoeVerse_WebAPI.Controllers
 
 
         //POST: api/Users/ForgotPassword
+        
         [HttpPost("ForgotPassword")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordDTO forgotPasswordDTO)
         {
-            var data = await _context.Users.FirstOrDefaultAsync(fp => fp.Email == forgotPasswordDTO.Email);
-            if (data == null)
-            {
-                return NotFound(new { success = false, message = "User not found." });
-            }
-
-            var oldPasswordHash = data.Password;
-
-            if (BCrypt.Net.BCrypt.Verify(forgotPasswordDTO.Password, oldPasswordHash))
-            {
-                return BadRequest(new { success = false, message = "New password cannot be same as old password." });
-            }
-
             try
             {
+                // Verify that OTP was verified in this session
+                var otpVerified = HttpContext.Session.GetString("otpVerified");
+                var sessionEmail = HttpContext.Session.GetString("otpEmail");
+
+                if (otpVerified != "true" || sessionEmail == null)
+                {
+                    return BadRequest(new { success = false, message = "Please verify OTP first." });
+                }
+
+                // Check if email matches the session email
+                if (!sessionEmail.Equals(forgotPasswordDTO.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { success = false, message = "Email mismatch with verified session." });
+                }
+
+                var data = await _context.Users.FirstOrDefaultAsync(fp => fp.Email == forgotPasswordDTO.Email);
+
+                if (data == null)
+                {
+                    return NotFound(new { success = false, message = "User not found." });
+                }
+
+                var oldPasswordHash = data.Password;
+
+                if (BCrypt.Net.BCrypt.Verify(forgotPasswordDTO.Password, oldPasswordHash))
+                {
+                    return BadRequest(new { success = false, message = "New password cannot be same as old password." });
+                }
+
                 data.Password = BCrypt.Net.BCrypt.HashPassword(forgotPasswordDTO.Password);
                 await _context.SaveChangesAsync();
+
+               
+                HttpContext.Session.Remove("otp");
+                HttpContext.Session.Remove("otpEmail");
+                HttpContext.Session.Remove("otpVerified");
+
                 return Ok(new { success = true, message = "Password updated successfully." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error in student: {ex.InnerException}");
+                Console.WriteLine($"ForgotPassword Error: {ex.Message}");
+                return StatusCode(500, new { success = false, message = "An error occurred while resetting password." });
             }
         }
 
@@ -387,7 +438,7 @@ namespace ShoeVerse_WebAPI.Controllers
                     return NotFound(new { success = false, message = "User not found." });
 
 
-                // Check if email is already used by another user
+             
                 if (_context.Users.Any(u => u.Email == updateDto.Email && u.UserId != id))
                     return BadRequest(new { success = false, message = "Email already in use by another account." });
 

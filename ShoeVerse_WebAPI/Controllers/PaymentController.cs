@@ -117,7 +117,7 @@ namespace ShoeVerse_WebAPI.Controllers
             }
             else
             {
-                order.Status = dto.PaymentStatus; // e.g., "Paid"
+                order.Status = dto.PaymentStatus;
             }
             order.UpdatedAt = DateTime.UtcNow;
 
@@ -146,54 +146,7 @@ namespace ShoeVerse_WebAPI.Controllers
 
 
 
-        // Email sending
-        //private async Task<bool> SendOrderConfirmationEmail(string email, Order order)
-        //{
-        //    try
-        //    {
-        //        string templatePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates", "OrderConfirmation.html");
-        //        string emailBody = await System.IO.File.ReadAllTextAsync(templatePath);
-
-        //        emailBody = emailBody.Replace("{{UserName}}", order.User.Username)
-        //                             .Replace("{{OrderId}}", order.OrderId.ToString())
-        //                             .Replace("{{OrderDate}}", order.CreatedAt.ToString("dd-MM-yyyy"))
-        //                             .Replace("{{TotalAmount}}", order.TotalAmount.ToString("C"));
-
-        //        string itemsHtml = "";
-        //        foreach (var item in order.OrderItems)
-        //        {
-        //            itemsHtml += $"<tr>" +
-        //                         $"<td>{item.Product.Name}</td>" +
-        //                         $"<td>{item.Quantity}</td>" +
-        //                         $"<td>{item.Price}</td>" +
-        //                         $"</tr>";
-        //        }
-        //        emailBody = emailBody.Replace("{{OrderItems}}", itemsHtml);
-
-        //        using var smtp = new SmtpClient("smtp.gmail.com")
-        //        {
-        //            Port = 587,
-        //            Credentials = new NetworkCredential("bhavsarvatsal337@gmail.com", "dsms vopc kgoa teef"),
-        //            EnableSsl = true,
-        //        };
-
-        //        var mailMsg = new MailMessage
-        //        {
-        //            From = new MailAddress("bhavsarvatsal337@gmail.com"),
-        //            Subject = $"Order Confirmation - #{order.OrderId}",
-        //            Body = emailBody,
-        //            IsBodyHtml = true
-        //        };
-
-        //        mailMsg.To.Add(email);
-        //        await smtp.SendMailAsync(mailMsg);
-        //        return true;
-        //    }
-        //    catch
-        //    {
-        //        return false;
-        //    }
-        //}
+        
 
         private async Task<bool> SendOrderConfirmationEmail(string email, Order order)
         {

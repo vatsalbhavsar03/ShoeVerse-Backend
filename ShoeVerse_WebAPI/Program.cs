@@ -1,32 +1,32 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ShoeVerse_WebAPI.Models;
 using System.Text;
 
-// 🔹 Configure WebRootPath explicitly
+//Configure WebRootPath 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
     WebRootPath = "wwwroot"
 });
 
-// 🔹 Database Context
+//  Database Context
 builder.Services.AddDbContext<ShoeVersedbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("api")));
 
-// 🔹 Controllers with JSON Options
+//  Controllers with JSON Options
 builder.Services.AddControllers()
     .AddJsonOptions(x =>
         x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 
-// 🔹 Swagger with JWT Support
+//  Swagger with JWT Support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "ShoeVerse API", Version = "v1" });
-
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Enter 'Bearer {token}' below:",
@@ -35,7 +35,6 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -52,20 +51,20 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 🔹 Session Support
+// Session Support 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(5);
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.Name = ".ShoeVerse.Session";
+    options.Cookie.SameSite = SameSiteMode.Lax; 
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; 
 });
 
-// 🔹 JWT Authentication
+//  JWT Authentication
 var keyBytes = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -84,19 +83,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 🔹 CORS
+//  CORS 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
         policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "https://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials());
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials());
 });
 
 var app = builder.Build();
 
-// 🔹 Middleware Pipeline
+//  Middleware 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -108,14 +107,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 🔹 IMPORTANT: Enable Static Files Middleware
+
 app.UseStaticFiles();
 
 app.UseRouting();
-app.UseCors("AllowFrontend");
-
-app.UseSession();
-
+app.UseCors("AllowFrontend"); 
+app.UseSession();              
 app.UseAuthentication();
 app.UseAuthorization();
 

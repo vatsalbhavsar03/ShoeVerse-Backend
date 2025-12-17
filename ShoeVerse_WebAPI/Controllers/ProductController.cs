@@ -83,7 +83,7 @@ namespace ShoeVerse_WebAPI.Controllers
             try
             {
                 _context.Products.Add(product);
-                await _context.SaveChangesAsync(); // get ProductId
+                await _context.SaveChangesAsync(); 
 
                 if (dto.Colors != null && dto.Colors.Any())
                 {
@@ -99,7 +99,7 @@ namespace ShoeVerse_WebAPI.Controllers
                             IsActive = true
                         };
                         _context.ProductColors.Add(color);
-                        await _context.SaveChangesAsync(); // get ColorId
+                        await _context.SaveChangesAsync(); 
 
                         // sizes
                         if (colorDto.Sizes != null && colorDto.Sizes.Any())

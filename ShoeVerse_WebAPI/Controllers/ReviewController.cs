@@ -95,7 +95,7 @@ namespace ShoeVerse_WebAPI.Controllers
             if (dto.Rating < 1 || dto.Rating > 5)
                 return BadRequest(new { message = "Rating must be between 1 and 5." });
 
-            // Optional: verify product and user exist
+            
             var productExists = await _context.Products.AnyAsync(p => p.ProductId == dto.ProductId);
             if (!productExists) return BadRequest(new { message = "Product does not exist." });
 
@@ -118,11 +118,11 @@ namespace ShoeVerse_WebAPI.Controllers
             }
             catch (Exception)
             {
-                // Replace with proper logging in production
+                
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while saving the review." });
             }
 
-            // Return a minimal response (not the tracked EF entity).
+            
             var response = new
             {
                 review.ReviewId,
@@ -133,7 +133,7 @@ namespace ShoeVerse_WebAPI.Controllers
                 review.CreatedAt
             };
 
-            // IMPORTANT: use CreatedAtAction (not CreatedAtRoute) since we didn't define a route name.
+            
             return CreatedAtAction(nameof(GetReviewById), new { reviewId = review.ReviewId }, response);
         }
 
@@ -149,11 +149,11 @@ namespace ShoeVerse_WebAPI.Controllers
             var existingReview = await _context.Reviews.FindAsync(reviewId);
             if (existingReview == null) return NotFound(new { message = "Review not found." });
 
-            // Optionally check ownership/authorization here
+            
 
             existingReview.Rating = dto.Rating;
             existingReview.ReviewText = dto.ReviewText;
-            // do not change CreatedAt
+           
 
             try
             {
@@ -161,11 +161,10 @@ namespace ShoeVerse_WebAPI.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                // If concurrency issue, check if the review still exists, otherwise return 404
+               
                 if (!await _context.Reviews.AnyAsync(r => r.ReviewId == reviewId))
                     return NotFound(new { message = "Review not found." });
 
-                // otherwise return 409 Conflict
                 return StatusCode(StatusCodes.Status409Conflict, new { message = "Concurrency error updating review. Please retry." });
             }
             catch (Exception)

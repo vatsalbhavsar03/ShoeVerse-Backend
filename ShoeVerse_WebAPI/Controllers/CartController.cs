@@ -18,9 +18,7 @@ namespace ShoeVerse_WebAPI.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Get cart for a specific user
-        /// </summary>
+        //GET api/cart/user/{userId}
         [HttpGet("user/{userId}")]
         [ProducesResponseType(typeof(ApiResponse<CartResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -28,7 +26,7 @@ namespace ShoeVerse_WebAPI.Controllers
         {
             try
             {
-                // Eager-load product/colors/images and sizes so we can pick image URL server-side
+                
                 var cart = await _context.Carts
                     .Include(c => c.CartItems)
                         .ThenInclude(ci => ci.Product)
@@ -71,9 +69,7 @@ namespace ShoeVerse_WebAPI.Controllers
             }
         }
 
-        /// <summary>
-        /// Add item to cart
-        /// </summary>
+        //POST api/cart/add
         [HttpPost("add")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -155,9 +151,7 @@ namespace ShoeVerse_WebAPI.Controllers
             }
         }
 
-        /// <summary>
-        /// Update cart item quantity
-        /// </summary>
+        //PUT api/cart/item/{cartItemId}
         [HttpPut("item/{cartItemId}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -186,9 +180,7 @@ namespace ShoeVerse_WebAPI.Controllers
             }
         }
 
-        /// <summary>
-        /// Remove item from cart
-        /// </summary>
+        //DELETE api/cart/item/{cartItemId}
         [HttpDelete("item/{cartItemId}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -212,9 +204,7 @@ namespace ShoeVerse_WebAPI.Controllers
             }
         }
 
-        /// <summary>
-        /// Clear all items from user's cart
-        /// </summary>
+        //DELETE api/cart/user/{userId}
         [HttpDelete("user/{userId}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

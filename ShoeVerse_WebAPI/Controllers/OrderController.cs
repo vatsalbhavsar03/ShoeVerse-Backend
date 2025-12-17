@@ -38,66 +38,6 @@ namespace ShoeVerse_WebAPI.Controllers
         }
 
         // POST: api/Order/CreateOrder
-        //[HttpPost("CreateOrder")]
-        //public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
-        //{
-        //    try
-        //    {
-        //        // Get user's cart
-        //        var cart = await _context.Carts
-        //            .Include(c => c.CartItems)
-        //                .ThenInclude(ci => ci.Product)
-        //            .Include(c => c.CartItems)
-        //                .ThenInclude(ci => ci.Color)
-        //            .Include(c => c.CartItems)
-        //                .ThenInclude(ci => ci.Size)
-        //            .FirstOrDefaultAsync(c => c.UserId == request.UserId);
-
-        //        if (cart == null || !cart.CartItems.Any())
-        //            return BadRequest(new { success = false, message = "Cart is empty" });
-
-        //        var order = new Order
-        //        {
-        //            UserId = request.UserId,
-        //            Status = request.PaymentMethod.ToLower() == "cod" ? "Pending" : "Payment Initiated",
-        //            OrderDate = DateTime.UtcNow,
-        //            TotalAmount = cart.CartItems.Sum(ci => (ci.Product?.Price ?? 0) * ci.Quantity),
-        //            Phone = request.Phone,
-        //            Address = request.Address,
-        //            CreatedAt = DateTime.UtcNow,
-        //            UpdatedAt = DateTime.UtcNow
-        //        };
-
-        //        _context.Orders.Add(order);
-        //        await _context.SaveChangesAsync();
-
-        //        foreach (var item in cart.CartItems)
-        //        {
-        //            var orderItem = new OrderItem
-        //            {
-        //                OrderId = order.OrderId,
-        //                ProductId = item.ProductId,
-        //                ColorId = item.ColorId,
-        //                SizeId = item.SizeId,
-        //                Quantity = item.Quantity,
-        //                Price = item.Product?.Price ?? 0
-        //            };
-        //            _context.OrderItems.Add(orderItem);
-        //        }
-
-        //        // Clear cart
-        //        _context.CartItems.RemoveRange(cart.CartItems);
-        //        await _context.SaveChangesAsync();
-
-        //        return Ok(new { success = true, message = "Order created successfully", orderId = order.OrderId });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error creating order for user {UserId}", request.UserId);
-        //        return StatusCode(500, new { success = false, message = ex.Message });
-        //    }
-        //}
-        // POST: api/Order/CreateOrder
         [HttpPost("CreateOrder")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
@@ -107,7 +47,6 @@ namespace ShoeVerse_WebAPI.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Load user's cart with items and necessary nav props
                 var cart = await _context.Carts
                     .Include(c => c.CartItems)
                         .ThenInclude(ci => ci.Product)
@@ -162,7 +101,7 @@ namespace ShoeVerse_WebAPI.Controllers
                 };
 
                 _context.Orders.Add(order);
-                await _context.SaveChangesAsync(); // persist to obtain order.OrderId
+                await _context.SaveChangesAsync(); 
 
                 // 3) Create OrderItems and decrement ProductSize stock
                 foreach (var ci in cart.CartItems)
@@ -190,7 +129,7 @@ namespace ShoeVerse_WebAPI.Controllers
                     sizeEntity.Stock = Math.Max(0, (sizeEntity.Stock ?? 0) - ci.Quantity);
                     _context.ProductSizes.Update(sizeEntity);
 
-                    // Optional: decrement product-level stock if your Product entity contains a Stock property
+                    // decrement product-level stock if your Product entity contains a Stock property
                     if (ci.Product != null)
                     {
                         var productEntity = await _context.Products.FindAsync(ci.ProductId);
